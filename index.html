@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b2a4a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="IMTS Companion">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>IMTS Chicago Companion</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#102030;background:#eef4f8}
+body{margin:0}.wrap{max-width:760px;margin:auto;padding:18px}.hero,.card{background:white;border-radius:20px;padding:18px;margin:0 0 14px;box-shadow:0 4px 18px #0001}
+.hero{background:#0b2a4a;color:white}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.08em;opacity:.8}h1{margin:5px 0 3px}h2{margin:2px 0 12px}
+.btn{display:block;text-decoration:none;text-align:center;background:#0b66c3;color:white;padding:13px;border-radius:12px;margin:8px 0;font-weight:750;border:0;width:100%;box-sizing:border-box}
+.btn.alt{background:#e9f1f8;color:#123}label{font-weight:700;display:block;margin-top:10px}input,textarea{font:inherit;width:100%;box-sizing:border-box;padding:11px;border:1px solid #bbc8d2;border-radius:10px;margin-top:5px}
+.small{font-size:13px;color:#536471}.ok{color:#137333;font-weight:700}.private{border:2px solid #b8d7ef}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}@media(max-width:520px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body><div class="wrap">
+<section class="hero"><div class="eyebrow">CHICAGO • SEPTEMBER 2026</div><h1>IMTS Chicago Companion</h1><div>Your private trip details stay on this iPhone.</div></section>
+
+<section class="card private">
+<div class="eyebrow">PRIVATE • SAVED ONLY IN THIS BROWSER</div><h2>My Trip Setup</h2>
+<p class="small">These fields are not stored in the public website code. Enter them once after installing the web app.</p>
+<label>Home address<input id="home" autocomplete="street-address" placeholder="Your home address"></label>
+<label>Pickup address<input id="pickup" autocomplete="street-address" placeholder="Pickup address"></label>
+<label>Chicago lodging address<input id="lodging" autocomplete="street-address" placeholder="Your Chicago lodging"></label>
+<label>Badge / personal note<textarea id="note" placeholder="Optional private note"></textarea></label>
+<button class="btn" onclick="savePrivate()">Save private trip details</button>
+<div id="saved" class="small"></div>
+</section>
+
+<section class="card"><div class="eyebrow">WEDNESDAY • NASHVILLE</div><h2>Home → Pickup → BNA</h2>
+<div class="grid"><button class="btn" onclick="route('home','pickup','driving')">Home → Pickup</button><button class="btn" onclick="routeValue('pickup','Terminal Garage 1, Nashville International Airport, Nashville, TN','driving')">Pickup → BNA Garage 1</button></div>
+<a class="btn alt" href="https://www.southwest.com/air/flight-status/" target="_blank">Southwest flight status</a>
+<p class="small">Outbound: Southwest 573 • BNA 12:00 PM → MDW 1:30 PM</p>
+</section>
+
+<section class="card"><div class="eyebrow">CHICAGO ARRIVAL</div><h2>Midway → Lodging → IMTS</h2>
+<button class="btn" onclick="routeValue('lodging','Chicago Midway International Airport','transit',true)">MDW → Lodging</button>
+<button class="btn" onclick="routeValue('lodging','McCormick Place, Chicago, IL','transit')">Lodging → McCormick Place</button>
+</section>
+
+<section class="card"><div class="eyebrow">WEDNESDAY EVENING</div><h2>BIG DAISHOWA Dinner</h2>
+<p>6:30 PM cocktails • 7:30 PM dinner<br><strong>River Roast</strong> • 315 N LaSalle St, Chicago</p>
+<a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=River%20Roast%2C%20315%20N%20LaSalle%20St%2C%20Chicago%2C%20IL&travelmode=transit" target="_blank">Navigate to River Roast</a>
+</section>
+
+<section class="card"><div class="eyebrow">IMTS TARGETS</div><h2>Priority Visits</h2>
+<p><strong>ZEISS</strong> • 134302<br><strong>Hexagon</strong> • 134102<br><strong>Verisurf</strong> • 134330<br><strong>High QA</strong> • 134500<br><strong>Mastercam</strong> • 133222<br><strong>Mitutoyo</strong> • 134117<br><strong>PolyWorks</strong> • 134420</p>
+</section>
+
+<section class="card"><div class="eyebrow">SATURDAY • RETURN</div><h2>Lodging → Midway</h2>
+<button class="btn" onclick="routeValue('lodging','Chicago Midway International Airport','transit')">Lodging → MDW</button>
+<p class="small">Return: Southwest 2677 • MDW 2:25 PM → BNA 3:50 PM</p>
+</section>
+
+<section class="card"><div class="eyebrow">EXPENSES</div><h2>Reimbursement Notes</h2>
+<label><input type="checkbox" id="gas"> Gas receipt saved</label>
+<label><input type="checkbox" id="parking"> Parking receipt saved</label>
+<label><input type="checkbox" id="ventra"> Ventra proof saved</label>
+<label>Expense note<textarea id="expense" placeholder="Amounts / receipt notes"></textarea></label>
+<button class="btn" onclick="saveExpenses()">Save expense checklist</button>
+<div id="expenseSaved" class="small"></div>
+</section>
+</div>
+<script>
+const ids=['home','pickup','lodging','note'];
+function savePrivate(){ids.forEach(id=>localStorage.setItem('imts_'+id,document.getElementById(id).value));document.getElementById('saved').textContent='✓ Saved only on this device/browser.'}
+function loadPrivate(){ids.forEach(id=>document.getElementById(id).value=localStorage.getItem('imts_'+id)||'');['gas','parking','ventra'].forEach(id=>document.getElementById(id).checked=localStorage.getItem('imts_'+id)==='1');document.getElementById('expense').value=localStorage.getItem('imts_expense')||''}
+function route(a,b,mode){let av=document.getElementById(a).value,bv=document.getElementById(b).value;if(!av||!bv){alert('Save the private addresses first.');return}openMap(av,bv,mode)}
+function routeValue(field,fixed,mode,reverse=false){let v=document.getElementById(field).value;if(!v){alert('Save your Chicago lodging address first.');return}reverse?openMap(fixed,v,mode):openMap(v,fixed,mode)}
+function openMap(origin,destination,mode){let u='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(origin)+'&destination='+encodeURIComponent(destination)+'&travelmode='+encodeURIComponent(mode);window.open(u,'_blank')}
+function saveExpenses(){['gas','parking','ventra'].forEach(id=>localStorage.setItem('imts_'+id,document.getElementById(id).checked?'1':'0'));localStorage.setItem('imts_expense',document.getElementById('expense').value);document.getElementById('expenseSaved').textContent='✓ Expense checklist saved on this device.'}
+loadPrivate();
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{})}
+</script></body></html>
