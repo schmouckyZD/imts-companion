@@ -1,0 +1,480 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b2a4a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="IMTS Companion">
+<title>IMTS Companion V2</title>
+
+<style>
+:root{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:#102033;
+  background:#eef3f8;
+}
+*{box-sizing:border-box}
+body{margin:0}
+.wrap{max-width:760px;margin:auto;padding-bottom:60px}
+.hero{
+  background:#0b2a4a;color:white;padding:24px 18px;
+  border-radius:0 0 24px 24px
+}
+.hero h1{margin:4px 0;font-size:29px}
+.eyebrow{font-size:12px;font-weight:800;letter-spacing:1.2px}
+.card{
+  background:white;margin:14px;padding:17px;border-radius:18px;
+  box-shadow:0 3px 12px #00000012
+}
+h2{margin:2px 0 12px}
+label{font-weight:700;display:block;margin-top:10px}
+input,textarea,select{
+  width:100%;padding:13px;margin-top:5px;border:1px solid #ccd5df;
+  border-radius:11px;font-size:16px
+}
+button,.btn{
+  display:block;width:100%;border:0;border-radius:13px;
+  padding:15px;margin:9px 0;background:#0b62c4;color:white;
+  font-size:17px;font-weight:800;text-align:center;text-decoration:none
+}
+.alt{background:#e9f1f8;color:#123}
+.green{background:#177245}
+.orange{background:#a64b00}
+.step{
+  border:2px solid #dbe3ec;border-radius:18px;
+  padding:15px;margin:12px 0;background:#f7f9fb;
+  transition:.2s
+}
+.step.done{
+  background:#dff3e5;border-color:#91d0a1;
+  transform:scale(.97);opacity:.78
+}
+.step.next{
+  background:white;border:4px solid #1672d4;
+  padding:22px;box-shadow:0 7px 20px #1672d425
+}
+.step.next h3{font-size:27px;margin:3px 0 8px}
+.step.future{opacity:.68}
+.badge{
+  display:inline-block;padding:5px 9px;border-radius:20px;
+  font-size:12px;font-weight:900;background:#dcecff;color:#064d9c
+}
+.done .badge{background:#bfe4c8;color:#12582a}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.small{font-size:13px;color:#536471}
+.hidden{display:none}
+.bigtext .step.next h3{font-size:36px}
+.bigtext .step.next button,.bigtext .step.next .btn{font-size:23px;padding:20px}
+.photo{
+  max-width:100%;border-radius:14px;margin-top:10px;
+  display:none
+}
+.money{font-size:30px;font-weight:900}
+hr{border:0;border-top:1px solid #e1e6eb;margin:18px 0}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<section class="hero">
+  <div class="eyebrow">CHICAGO • SMART TRAVEL NAVIGATOR</div>
+  <h1>IMTS Companion V2 🚀</h1>
+  <div>Your next move, receipts, parking and return trip in one place.</div>
+</section>
+
+<section class="card">
+  <h2>👓 Easy Mode</h2>
+  <button class="alt" onclick="toggleBig()">Toggle LARGE next-step text</button>
+</section>
+
+<section class="card">
+  <div class="eyebrow">PRIVATE • SAVED ONLY IN THIS BROWSER</div>
+  <h2>🔐 My Trip Setup</h2>
+
+  <label>Home address</label>
+  <input id="home" autocomplete="street-address">
+
+  <label>Pickup address</label>
+  <input id="pickup">
+
+  <label>Chicago lodging address</label>
+  <input id="lodging">
+
+  <label>Personal note</label>
+  <textarea id="note"></textarea>
+
+  <button onclick="saveSetup()">Save Private Trip Details</button>
+  <div id="saveMsg" class="small"></div>
+</section>
+
+<section class="card">
+  <div class="eyebrow">SMART NEXT STEP</div>
+  <h2>🧭 What Do I Do Next?</h2>
+  <div id="steps"></div>
+  <button class="alt" onclick="undoStep()">↩ Undo Last Step</button>
+  <button class="alt" onclick="resetTrip()">Reset Trip Progress</button>
+</section>
+
+<section class="card">
+  <div class="eyebrow">PARKING MEMORY</div>
+  <h2>🚙 Where Did I Park?</h2>
+
+  <label>Garage / floor / row / space</label>
+  <input id="parkingNote" placeholder="Example: Garage 1 • Level 3 • Row C">
+
+  <label>Take a picture of the car or nearby sign</label>
+  <input id="carPhotoInput" type="file" accept="image/*" capture="environment">
+  <img id="carPhoto" class="photo" alt="Parked car">
+
+  <button onclick="saveParkingLocation()">📍 Save My Parking GPS</button>
+  <div id="parkingStatus" class="small">No parking location saved yet.</div>
+
+  <button class="green" onclick="findCar()">🧭 FIND MY CAR</button>
+</section>
+
+<section class="card">
+  <div class="eyebrow">RETURN HOME</div>
+  <h2>🏠 Who Is Riding Back?</h2>
+  <button onclick="routeReturn(true)">Ben With Me — BNA → Ben → Home</button>
+  <button class="alt" onclick="routeReturn(false)">BNA → Home Direct</button>
+</section>
+
+<section class="card">
+  <div class="eyebrow">TRIP WALLET</div>
+  <h2>💵 Budget & Per Diem</h2>
+
+  <label>Per diem received ($)</label>
+  <input id="perdiem" type="number" inputmode="decimal" placeholder="0.00">
+
+  <label>Personal trip budget ($)</label>
+  <input id="budget" type="number" inputmode="decimal" placeholder="0.00">
+
+  <button onclick="saveBudget()">Save Budget</button>
+
+  <hr>
+  <div class="small">Recorded expenses</div>
+  <div id="spent" class="money">$0.00</div>
+  <div id="remaining" class="small"></div>
+</section>
+
+<section class="card">
+  <div class="eyebrow">RECEIPT CAMERA</div>
+  <h2>🧾 Add Expense / Receipt</h2>
+
+  <label>Receipt photo</label>
+  <input id="receiptPhoto" type="file" accept="image/*" capture="environment">
+
+  <label>Amount ($)</label>
+  <input id="expenseAmount" type="number" inputmode="decimal" placeholder="0.00">
+
+  <label>Category</label>
+  <select id="expenseCategory">
+    <option>Gas</option>
+    <option>Parking</option>
+    <option>Ventra / Transportation</option>
+    <option>Meal</option>
+    <option>Company Reimbursable</option>
+    <option>Personal Entertainment</option>
+    <option>Other</option>
+  </select>
+
+  <label>Merchant / note</label>
+  <input id="expenseNote">
+
+  <button onclick="addExpense()">Save Expense</button>
+  <div id="expenseList"></div>
+</section>
+
+<section class="card">
+  <div class="eyebrow">TICKETS & PASSES</div>
+  <h2>🎟 Travel Wallet</h2>
+  <p>Keep secure tickets and QR codes in Apple Wallet. This Companion does not copy them into the public website.</p>
+  <button class="alt" onclick="alert('Open Apple Wallet on your iPhone to show your IMTS badge or boarding pass.')">🎟 IMTS Badge — Apple Wallet</button>
+  <button class="alt" onclick="alert('Open Apple Wallet or your airline app for your boarding pass.')">✈️ Boarding Pass</button>
+  <button class="alt" onclick="alert('Open your Ventra/Wallet transit pass on your iPhone.')">🚇 Ventra Pass</button>
+</section>
+
+<section class="card">
+  <div class="eyebrow">CHICAGO OPTIONAL EVENING</div>
+  <h2>🌙 Nightlife</h2>
+  <button onclick="mapFromLodging('Ballys Chicago Casino, 600 N Wabash Ave, Chicago IL')">🎰 Bally's Chicago Casino</button>
+  <button onclick="mapFromLodging('Deja Vu Showgirls, 750 S Clinton St, Chicago IL')">🌙 Deja Vu Showgirls</button>
+  <button class="alt" onclick="mapFromLodging('Brandos Speakeasy, 343 S Dearborn St, Chicago IL')">🎤 Brando's Speakeasy</button>
+  <button class="alt" onclick="mapFromLodging('Howl at the Moon, 26 W Hubbard St, Chicago IL')">🎹 Howl at the Moon</button>
+  <button class="alt" onclick="mapFromLodging('Kaseys Tavern, 701 S Dearborn St, Chicago IL')">🍺 Kasey's Tavern</button>
+</section>
+
+<section class="card">
+  <h2>💾 Backup</h2>
+  <p class="small">Exports your setup, progress, parking coordinates and expense list. Receipt photos are not included.</p>
+  <button onclick="exportBackup()">Export Trip Backup</button>
+</section>
+
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+let progress=Number(localStorage.getItem("imtsProgress")||0);
+let expenses=JSON.parse(localStorage.getItem("imtsExpenses")||"[]");
+let parking=JSON.parse(localStorage.getItem("imtsParking")||"null");
+
+const tripSteps=[
+  ["Leave Home","Navigate from Home to Ben","pickup"],
+  ["Pick Up Ben","Ben is in the car — mark this complete",""],
+  ["Drive to BNA","Navigate to Nashville International Airport","bna"],
+  ["Park the Car","Take car photo + save GPS before walking away","parking"],
+  ["Enter Airport","Keep parking and gas receipts",""],
+  ["Fly to Chicago","Use boarding pass from Apple Wallet / airline app",""],
+  ["Chicago Lodging","Navigate to saved lodging","lodging"],
+  ["IMTS","Show IMTS badge from Apple Wallet","imts"],
+  ["Return to MDW","Head to Midway for return flight","mdw"],
+  ["Find My Car at BNA","Show photo and navigate to saved parking GPS","findcar"],
+  ["Drive Home","Choose BNA → Ben → Home or BNA → Home","return"]
+];
+
+function saveSetup(){
+  ["home","pickup","lodging","note"].forEach(id=>localStorage.setItem("imts_"+id,$(id).value));
+  $("saveMsg").textContent="✓ Private trip details saved on this device.";
+}
+
+function loadSetup(){
+  ["home","pickup","lodging","note"].forEach(id=>$(id).value=localStorage.getItem("imts_"+id)||"");
+  $("parkingNote").value=parking?.note||"";
+  $("perdiem").value=localStorage.getItem("imtsPerdiem")||"";
+  $("budget").value=localStorage.getItem("imtsBudget")||"";
+}
+
+function enc(v){return encodeURIComponent(v)}
+function maps(origin,destination,waypoints=""){
+  if(!destination)return alert("Save the required private address first.");
+  let u="https://www.google.com/maps/dir/?api=1&travelmode=driving&destination="+enc(destination);
+  if(origin)u+="&origin="+enc(origin);
+  if(waypoints)u+="&waypoints="+enc(waypoints);
+  location.href=u;
+}
+
+function stepAction(type){
+  const home=$("home").value,pickup=$("pickup").value,lodging=$("lodging").value;
+  if(type==="pickup")maps(home,pickup);
+  if(type==="bna")maps(pickup,"Nashville International Airport, Nashville TN");
+  if(type==="lodging")maps("",lodging);
+  if(type==="imts")maps(lodging,"McCormick Place, Chicago IL");
+  if(type==="mdw")maps(lodging,"Chicago Midway International Airport");
+  if(type==="parking")document.querySelector("#parkingNote").scrollIntoView({behavior:"smooth"});
+  if(type==="findcar")findCar();
+  if(type==="return")document.querySelectorAll(".card")[5].scrollIntoView({behavior:"smooth"});
+}
+
+function renderSteps(){
+  $("steps").innerHTML=tripSteps.map((s,i)=>{
+    let c=i<progress?"done":i===progress?"next":"future";
+    let badge=i<progress?"✓ DONE":i===progress?"NEXT":"LATER";
+    return `<div class="step ${c}">
+      <span class="badge">${badge}</span>
+      <h3>${i+1}. ${s[0]}</h3>
+      <div>${s[1]}</div>
+      ${i===progress && s[2]?`<button onclick="stepAction('${s[2]}')">OPEN THIS STEP</button>`:""}
+      ${i===progress?`<button class="green" onclick="completeStep()">✓ DONE — NEXT</button>`:""}
+    </div>`;
+  }).join("");
+}
+
+function completeStep(){
+  if(progress<tripSteps.length)progress++;
+  localStorage.setItem("imtsProgress",progress);
+  renderSteps();
+  setTimeout(()=>{
+    const n=document.querySelector(".step.next");
+    if(n)n.scrollIntoView({behavior:"smooth",block:"center"});
+  },100);
+}
+
+function undoStep(){
+  if(progress>0)progress--;
+  localStorage.setItem("imtsProgress",progress);
+  renderSteps();
+}
+
+function resetTrip(){
+  if(confirm("Reset trip progress to Step 1?")){
+    progress=0;
+    localStorage.setItem("imtsProgress","0");
+    renderSteps();
+  }
+}
+
+function toggleBig(){
+  document.body.classList.toggle("bigtext");
+}
+
+$("carPhotoInput").addEventListener("change",e=>{
+  const f=e.target.files[0];
+  if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      localStorage.setItem("imtsCarPhoto",r.result);
+      showCarPhoto();
+    }catch(e){
+      alert("Photo is too large to save permanently in this version. Keep the photo in Photos and save the GPS/location here.");
+      $("carPhoto").src=r.result;
+      $("carPhoto").style.display="block";
+    }
+  };
+  r.readAsDataURL(f);
+});
+
+function showCarPhoto(){
+  const p=localStorage.getItem("imtsCarPhoto");
+  if(p){
+    $("carPhoto").src=p;
+    $("carPhoto").style.display="block";
+  }
+}
+
+function saveParkingLocation(){
+  if(!navigator.geolocation)return alert("Location is not available in this browser.");
+  $("parkingStatus").textContent="Getting your location…";
+  navigator.geolocation.getCurrentPosition(pos=>{
+    parking={
+      lat:pos.coords.latitude,
+      lng:pos.coords.longitude,
+      note:$("parkingNote").value,
+      time:new Date().toISOString()
+    };
+    localStorage.setItem("imtsParking",JSON.stringify(parking));
+    updateParking();
+  },()=>{
+    $("parkingStatus").textContent="Location permission was not granted. Add your garage/floor/row manually.";
+  },{enableHighAccuracy:true,timeout:15000});
+}
+
+function updateParking(){
+  parking=JSON.parse(localStorage.getItem("imtsParking")||"null");
+  if(parking){
+    $("parkingStatus").textContent="✓ Parking location saved"+(parking.note?" — "+parking.note:"");
+  }
+}
+
+function findCar(){
+  parking=JSON.parse(localStorage.getItem("imtsParking")||"null");
+  showCarPhoto();
+  if(!parking)return alert("No parking GPS has been saved yet.");
+  location.href=`https://www.google.com/maps/dir/?api=1&destination=${parking.lat},${parking.lng}&travelmode=walking`;
+}
+
+function routeReturn(withBen){
+  const home=$("home").value,pickup=$("pickup").value;
+  if(!home)return alert("Save your Home address first.");
+  if(withBen){
+    if(!pickup)return alert("Save the Pickup address first.");
+    maps("Nashville International Airport, Nashville TN",home,pickup);
+  }else{
+    maps("Nashville International Airport, Nashville TN",home);
+  }
+}
+
+function saveBudget(){
+  localStorage.setItem("imtsPerdiem",$("perdiem").value);
+  localStorage.setItem("imtsBudget",$("budget").value);
+  renderExpenses();
+}
+
+function addExpense(){
+  const amount=Number($("expenseAmount").value);
+  if(!amount || amount<=0)return alert("Enter the receipt amount first.");
+
+  expenses.push({
+    id:Date.now(),
+    amount,
+    category:$("expenseCategory").value,
+    note:$("expenseNote").value,
+    date:new Date().toISOString(),
+    hasPhoto:!!$("receiptPhoto").files[0]
+  });
+
+  localStorage.setItem("imtsExpenses",JSON.stringify(expenses));
+  $("expenseAmount").value="";
+  $("expenseNote").value="";
+  $("receiptPhoto").value="";
+  renderExpenses();
+}
+
+function deleteExpense(id){
+  expenses=expenses.filter(x=>x.id!==id);
+  localStorage.setItem("imtsExpenses",JSON.stringify(expenses));
+  renderExpenses();
+}
+
+function renderExpenses(){
+  expenses=JSON.parse(localStorage.getItem("imtsExpenses")||"[]");
+  const total=expenses.reduce((a,b)=>a+Number(b.amount),0);
+  $("spent").textContent="$"+total.toFixed(2);
+
+  const budget=Number(localStorage.getItem("imtsBudget")||0);
+  const per=Number(localStorage.getItem("imtsPerdiem")||0);
+  const available=budget+per;
+
+  $("remaining").textContent=available
+    ?"Budget + per diem remaining: $"+(available-total).toFixed(2)
+    :"Enter a budget/per diem to calculate remaining money.";
+
+  $("expenseList").innerHTML=expenses.length
+    ?"<hr>"+expenses.map(x=>`
+      <div class="step">
+        <b>$${Number(x.amount).toFixed(2)} — ${x.category}</b>
+        <div>${x.note||""}</div>
+        <div class="small">${new Date(x.date).toLocaleString()} ${x.hasPhoto?"• 📷":""}</div>
+        <button class="alt" onclick="deleteExpense(${x.id})">Delete</button>
+      </div>`).join("")
+    :'<p class="small">No expenses recorded yet.</p>';
+}
+
+function mapFromLodging(destination){
+  const lodging=$("lodging").value;
+  if(!lodging)return alert("Save your Chicago lodging address first.");
+  maps(lodging,destination);
+}
+
+function exportBackup(){
+  const data={
+    version:"IMTS Companion V2",
+    exported:new Date().toISOString(),
+    setup:{
+      home:$("home").value,
+      pickup:$("pickup").value,
+      lodging:$("lodging").value,
+      note:$("note").value
+    },
+    progress,
+    parking:JSON.parse(localStorage.getItem("imtsParking")||"null"),
+    perdiem:localStorage.getItem("imtsPerdiem")||"",
+    budget:localStorage.getItem("imtsBudget")||"",
+    expenses
+  };
+
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="IMTS-Companion-V2-Backup.json";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("./sw.js").catch(()=>{});
+}
+
+loadSetup();
+renderSteps();
+renderExpenses();
+updateParking();
+showCarPhoto();
+</script>
+</body>
+</html>
