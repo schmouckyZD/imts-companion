@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b2a4a">
+<title>Companion V2.4 — Time Anchor Engine</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#102033;background:#eef3f8}
+*{box-sizing:border-box} body{margin:0}.wrap{max-width:760px;margin:auto;padding-bottom:70px}
+.hero{background:#0b2a4a;color:#fff;padding:24px 18px;border-radius:0 0 24px 24px}
+.hero h1{margin:4px 0;font-size:29px}.eyebrow{font-size:12px;font-weight:900;letter-spacing:1.1px}
+.card{background:#fff;margin:14px;padding:17px;border-radius:18px;box-shadow:0 3px 12px #00000012}
+h2,h3{margin:4px 0 10px} label{font-weight:750;display:block;margin-top:10px}
+input,select,textarea{width:100%;padding:13px;margin-top:5px;border:1px solid #ccd5df;border-radius:11px;font-size:16px;background:white}
+button{display:block;width:100%;border:0;border-radius:13px;padding:14px;margin:9px 0;background:#0b62c4;color:white;font-size:16px;font-weight:850}
+.alt{background:#e9f1f8;color:#123}.green{background:#177245}.danger{background:#a12622}.orange{background:#a64b00}
+.small{font-size:13px;color:#536471}.big{font-size:27px;font-weight:900}.target{border:3px solid #d3322b;background:#fff7f6}
+.pickup,.event,.step{border:2px solid #dbe3ec;border-radius:15px;padding:13px;margin:10px 0;background:#f8fafc}
+.step.next{border:4px solid #1672d4;background:white;box-shadow:0 7px 20px #1672d425}.step.done{background:#dff3e5;opacity:.8}
+.badge{display:inline-block;padding:5px 9px;border-radius:20px;font-size:12px;font-weight:900;background:#dcecff;color:#064d9c}
+.hard{background:#ffe2df;color:#8c1712}.flex{background:#e8f5e9;color:#176128}.warn{font-weight:850;color:#a12622}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.hidden{display:none}
+</style>
+</head>
+<body><div class="wrap">
+<section class="hero"><div class="eyebrow">MULTI-DAY • MULTI-WEEK • MULTI-MONTH</div>
+<h1>Companion V2.4 🎯</h1>
+<div>Plan early. Protect the times that cannot move. Recalculate everything around them.</div></section>
+
+<section class="card">
+<div class="eyebrow">TRIP WINDOW</div><h2>🗓 Plan the Whole Trip</h2>
+<label>Trip name</label><input id="tripName" placeholder="Example: IMTS Chicago">
+<div class="grid"><div><label>Trip starts</label><input id="tripStart" type="datetime-local"></div>
+<div><label>Trip ends</label><input id="tripEnd" type="datetime-local"></div></div>
+<div class="small">You can enter this today, tomorrow, a week early, or months early. Dates remain attached to the real calendar day.</div>
+</section>
+
+<section class="card target">
+<div class="eyebrow">PROTECTED TIME</div><h2>🎯 Add a Hard Target</h2>
+<label>What cannot be missed?</label><input id="anchorName" placeholder="Flight, last train, dinner reservation...">
+<label>Target date & time</label><input id="anchorTime" type="datetime-local">
+<label>How early must you be ready/there? (minutes)</label><input id="anchorBuffer" type="number" inputmode="numeric" value="120">
+<button onclick="addAnchor()">🎯 ADD HARD TARGET</button>
+<div id="anchors"></div>
+</section>
+
+<section class="card">
+<div class="eyebrow">BEFORE THE TARGET</div><h2>🚙 Pickup Builder</h2>
+<label>Person / stop name</label><input id="pickupName" placeholder="Ben, John, hotel stop...">
+<label>Address</label><input id="pickupAddress" placeholder="Enter or paste address">
+<label>Time needed at this stop (minutes)</label><input id="pickupDwell" type="number" inputmode="numeric" value="5">
+<label>Drive time FROM this stop TO the next stop (minutes)</label><input id="pickupDrive" type="number" inputmode="numeric" value="15">
+<button onclick="addPickup()">➕ ADD PICKUP / STOP</button>
+<div id="pickups"></div>
+<div class="small">Add as many stops as needed. Reorder, edit or remove them. The engine calculates backward from the protected target.</div>
+</section>
+
+<section class="card">
+<div class="eyebrow">MOVABLE SCHEDULE</div><h2>🚌 Add Flexible Event</h2>
+<label>Event</label><input id="flexName" placeholder="Bus every 10 min, lunch, sightseeing...">
+<label>Preferred date & time</label><input id="flexTime" type="datetime-local">
+<label>Flexibility</label><select id="flexKind"><option value="flex">Flexible / another one is available</option><option value="last">Last service / cannot miss</option></select>
+<button onclick="addFlex()">ADD EVENT</button><div id="flexEvents"></div>
+</section>
+
+<section class="card">
+<div class="eyebrow">TIME ENGINE</div><h2>🧠 Calculated Plan</h2>
+<div id="planMsg" class="small">Add a hard target to calculate the departure plan.</div>
+<div id="calculatedPlan"></div>
+</section>
+
+<section class="card">
+<div class="eyebrow">LIVE NAVIGATOR</div><h2>🧭 What Do I Do Next?</h2>
+<div id="now"></div>
+<button class="alt" onclick="undo()">↩ Undo</button>
+<button class="alt" onclick="resetProgress()">Reset Progress</button>
+</section>
+</div>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const mem={};
+const store={
+ get(k){try{return localStorage.getItem(k)}catch(e){return Object.prototype.hasOwnProperty.call(mem,k)?mem[k]:null}},
+ set(k,v){try{localStorage.setItem(k,String(v))}catch(e){mem[k]=String(v)}}
+};
+function readJSON(k,f){try{return JSON.parse(store.get(k)||"")||f}catch(e){return f}}
+let pickups=readJSON("c24_pickups",[]);
+let anchors=readJSON("c24_anchors",[]);
+let flexes=readJSON("c24_flexes",[]);
+let progress=Number(store.get("c24_progress")||0);
+const save=()=>{store.set("c24_pickups",JSON.stringify(pickups));store.set("c24_anchors",JSON.stringify(anchors));store.set("c24_flexes",JSON.stringify(flexes));};
+function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function dt(v){let d=new Date(v);return isNaN(d)?null:d}
+function fmt(d){return d?d.toLocaleString([], {weekday:"short",month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"}):"—"}
+function mins(v){return Math.max(0,Number(v)||0)}
+function addPickup(){
+ let name=$("pickupName").value.trim(), address=$("pickupAddress").value.trim();
+ if(!name)return alert("Enter a pickup/stop name.");
+ pickups.push({id:Date.now(),name,address,dwell:mins($("pickupDwell").value),drive:mins($("pickupDrive").value)});
+ $("pickupName").value="";$("pickupAddress").value="";save();renderAll();
+}
+function movePickup(i,d){let j=i+d;if(j<0||j>=pickups.length)return;[pickups[i],pickups[j]]=[pickups[j],pickups[i]];save();renderAll()}
+function delPickup(i){pickups.splice(i,1);if(progress>pickups.length)progress=pickups.length;save();renderAll()}
+function editPickup(i){
+ let p=pickups[i],n=prompt("Stop/person name:",p.name);if(n===null)return;
+ let a=prompt("Address:",p.address);if(a===null)return;
+ let dwell=prompt("Minutes at stop:",p.dwell);if(dwell===null)return;
+ let drive=prompt("Drive minutes to next stop:",p.drive);if(drive===null)return;
+ Object.assign(p,{name:n.trim()||p.name,address:a.trim(),dwell:mins(dwell),drive:mins(drive)});save();renderAll();
+}
+function addAnchor(){
+ let name=$("anchorName").value.trim(), when=$("anchorTime").value;
+ if(!name||!dt(when))return alert("Enter the hard target and its date/time.");
+ anchors.push({id:Date.now(),name,when,buffer:mins($("anchorBuffer").value)});
+ anchors.sort((a,b)=>dt(a.when)-dt(b.when));$("anchorName").value="";save();renderAll();
+}
+function delAnchor(i){anchors.splice(i,1);save();renderAll()}
+function addFlex(){
+ let name=$("flexName").value.trim(),when=$("flexTime").value,kind=$("flexKind").value;
+ if(!name||!dt(when))return alert("Enter the event and date/time.");
+ if(kind==="last"){anchors.push({id:Date.now(),name:"Last service: "+name,when,buffer:0});anchors.sort((a,b)=>dt(a.when)-dt(b.when))}
+ else flexes.push({id:Date.now(),name,when});
+ $("flexName").value="";save();renderAll();
+}
+function delFlex(i){flexes.splice(i,1);save();renderAll()}
+function activeAnchor(){
+ const now=new Date();
+ return anchors.find(a=>dt(a.when)>=now)||anchors[anchors.length-1]||null;
+}
+function buildSchedule(){
+ let a=activeAnchor(); if(!a)return null;
+ let target=dt(a.when), cursor=new Date(target.getTime()-mins(a.buffer)*60000);
+ let rows=[];
+ for(let i=pickups.length-1;i>=0;i--){
+   let p=pickups[i];
+   cursor=new Date(cursor.getTime()-mins(p.drive)*60000);
+   let departNext=new Date(cursor);
+   cursor=new Date(cursor.getTime()-mins(p.dwell)*60000);
+   rows.unshift({i,name:p.name,address:p.address,arrive:new Date(cursor),leave:departNext});
+ }
+ return {anchor:a,target,ready:new Date(target.getTime()-mins(a.buffer)*60000),rows,leave:rows.length?rows[0].arrive:new Date(target.getTime()-mins(a.buffer)*60000)};
+}
+function renderPickups(){
+ $("pickups").innerHTML=pickups.map((p,i)=>`<div class="pickup"><b>${i+1}. ${esc(p.name)}</b><div class="small">${esc(p.address)||"Address not entered"} • ${p.dwell} min stop • ${p.drive} min to next</div>
+ <div class="grid"><button class="alt" onclick="movePickup(${i},-1)">↑ Earlier</button><button class="alt" onclick="movePickup(${i},1)">↓ Later</button></div>
+ <div class="grid"><button class="alt" onclick="editPickup(${i})">Edit</button><button class="danger" onclick="delPickup(${i})">Delete</button></div></div>`).join("")||'<div class="small">No pickups yet.</div>';
+}
+function renderAnchors(){
+ $("anchors").innerHTML=anchors.map((a,i)=>`<div class="event"><span class="badge hard">HARD TARGET 🎯</span><h3>${esc(a.name)}</h3><div>${fmt(dt(a.when))}</div><div class="small">Protected buffer: ${a.buffer} min</div><button class="danger" onclick="delAnchor(${i})">Delete Target</button></div>`).join("")||'<div class="small">No hard targets yet.</div>';
+}
+function renderFlex(){
+ $("flexEvents").innerHTML=flexes.map((f,i)=>`<div class="event"><span class="badge flex">FLEXIBLE</span><b> ${esc(f.name)}</b><div>${fmt(dt(f.when))}</div><button class="danger" onclick="delFlex(${i})">Delete</button></div>`).join("")||'<div class="small">No flexible events yet.</div>';
+}
+function renderPlan(){
+ let s=buildSchedule();if(!s){$("calculatedPlan").innerHTML="";$("planMsg").textContent="Add a hard target to calculate the departure plan.";return}
+ let now=new Date(),diff=s.leave-now,late=diff<0;
+ $("planMsg").innerHTML=`Protected target: <b>${esc(s.anchor.name)}</b> — ${fmt(s.target)}<br>${late?'<span class="warn">🚨 Calculated departure time has already passed.</span>':`You must begin this pickup chain by <b>${fmt(s.leave)}</b>.`}`;
+ let rows=s.rows.map(r=>`<div class="step"><b>${r.i+1}. ${esc(r.name)}</b><div>Be there: ${fmt(r.arrive)}</div><div class="small">Leave this stop by ${fmt(r.leave)}</div></div>`).join("");
+ $("calculatedPlan").innerHTML=rows+`<div class="step target"><span class="badge hard">PROTECTED</span><h3>🎯 ${esc(s.anchor.name)}</h3><div>Ready/there by ${fmt(s.ready)}</div><div>Target time: ${fmt(s.target)}</div></div>`;
+}
+function renderNow(){
+ let s=buildSchedule();if(!s){$("now").innerHTML='<div class="small">Waiting for a hard target.</div>';return}
+ let items=s.rows.map(r=>({name:"Pickup / stop: "+r.name,time:r.arrive}));items.push({name:"Protected: "+s.anchor.name,time:s.ready,target:true});
+ let i=Math.min(progress,items.length-1);
+ $("now").innerHTML=items.map((x,j)=>`<div class="step ${j<progress?"done":j===i?"next":""}"><span class="badge ${x.target?"hard":""}">${j<progress?"✓ DONE":j===i?"NEXT":"LATER"}</span><h3>${esc(x.name)}</h3><div>${fmt(x.time)}</div>${j===i?'<button class="green" onclick="doneNext()">✓ DONE — NEXT</button>':""}</div>`).join("");
+}
+function doneNext(){progress++;store.set("c24_progress",progress);renderNow()}
+function undo(){if(progress>0)progress--;store.set("c24_progress",progress);renderNow()}
+function resetProgress(){if(confirm("Reset navigator progress?")){progress=0;store.set("c24_progress","0");renderNow()}}
+function renderAll(){renderPickups();renderAnchors();renderFlex();renderPlan();renderNow()}
+["tripName","tripStart","tripEnd"].forEach(id=>{$(id).value=store.get("c24_"+id)||"";$(id).addEventListener("change",()=>store.set("c24_"+id,$(id).value))});
+renderAll();
+setInterval(()=>{renderPlan();renderNow()},60000);
+</script></body></html>
