@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#102f55">
+<title>Companion V2.6 — Full Trip Brain</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#102038;background:#edf3f8}
+*{box-sizing:border-box} body{margin:0;background:#edf3f8} .wrap{max-width:820px;margin:auto;padding:0 16px 50px}
+.hero{background:#102f55;color:white;margin:0 -16px 18px;padding:34px 28px 28px;border-radius:0 0 38px 38px}
+.eyebrow{font-weight:900;letter-spacing:.13em;font-size:.78rem}.hero h1{font-size:2.2rem;margin:10px 0 8px}.hero p{font-size:1.12rem;margin:0;opacity:.94}
+.card{background:white;border-radius:28px;padding:22px;margin:16px 0;box-shadow:0 7px 22px #18324b12}
+.card h2{font-size:1.65rem;margin:0 0 16px}.sub{color:#5b6978}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{font-weight:800;display:block;margin:12px 0 7px}input,select,textarea{width:100%;font:inherit;font-size:1rem;padding:14px;border:2px solid #d7e0e8;border-radius:16px;background:#fff}
+button,.btn{display:block;width:100%;border:0;border-radius:17px;padding:15px 14px;font:inherit;font-weight:900;font-size:1rem;text-align:center;text-decoration:none;margin-top:11px;background:#2f69c7;color:#fff}
+button.secondary,.btn.secondary{background:#e8f0f7;color:#13263b}button.green{background:#347a4c}button.red{background:#b74336}
+.pill{display:inline-block;background:#e7f0ff;color:#2357a1;border-radius:999px;padding:6px 10px;font-size:.78rem;font-weight:900}
+.next{border:4px solid #2f69c7;border-radius:22px;padding:17px}.next h3{font-size:1.35rem;margin:9px 0}.event{border:2px solid #dce4eb;border-radius:19px;padding:15px;margin:10px 0}.event.done{opacity:.55}
+.moneygrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.moneybox{background:#f3f7fa;border-radius:17px;padding:12px;text-align:center}.moneybox b{display:block;font-size:1.15rem;margin-top:5px}
+.status{padding:13px;border-radius:15px;background:#f3f7fa;margin:10px 0}.good{background:#e7f5eb}.warn{background:#fff3d8}.danger{background:#fde9e6}
+.small{font-size:.88rem;color:#5c6a78}.voice{display:flex;align-items:center;gap:8px;font-weight:900}.voice input{width:auto;transform:scale(1.35)}
+img.preview{width:100%;max-height:260px;object-fit:cover;border-radius:16px;margin-top:10px}
+@media(max-width:560px){.row,.moneygrid{grid-template-columns:1fr}.hero h1{font-size:2rem}}
+</style>
+</head>
+<body><div class="wrap">
+<section class="hero"><div class="eyebrow">CHICAGO FIELD TEST • FULL TRIP BRAIN</div><h1>Companion V2.6 🧭</h1><p>Plan once. Recalculate from where you really are. Protect what cannot move.</p></section>
+
+<section class="card">
+<h2>🎯 Hard Target</h2>
+<label>Target</label><input id="targetName" value="Southwest Flight #0573 — BNA to MDW">
+<label>Date & time</label><input id="targetTime" type="datetime-local" value="2026-09-16T12:00">
+<label>Protected buffer (minutes)</label><input id="buffer" type="number" inputmode="numeric" value="120">
+<button onclick="recalc()">RECALCULATE TRIP</button>
+<div id="targetStatus" class="status"></div>
+</section>
+
+<section class="card">
+<h2>📍 Start Intelligence</h2>
+<p><b>Planned Start</b> is where you expect to begin. <b>Actual Location</b> wins when you are ready to leave.</p>
+<label>Planned start name</label><input id="startName" placeholder="Home, work, friend, hotel…">
+<label>Planned start time</label><input id="startTime" type="datetime-local">
+<div class="row"><button onclick="saveStartGPS()">📌 SAVE THIS GPS AS PLANNED</button><button class="secondary" onclick="checkGPS()">📍 CHECK WHERE I AM NOW</button></div>
+<div id="gpsStatus" class="status">No GPS check yet.</div>
+<p class="small">GPS stays on this device. Route links use your current position only when you request navigation.</p>
+</section>
+
+<section class="card">
+<h2>🚗 Departure / Pickup</h2>
+<div class="event"><b>Schmiede Corp — Ben + John + Scott</b><br><span class="small">One pickup location. No private address is stored in this public file.</span></div>
+<label>Expected time at Schmiede (minutes)</label><input id="pickupStop" type="number" inputmode="numeric" value="15">
+<label>Drive Schmiede → BNA estimate (minutes)</label><input id="driveBNA" type="number" inputmode="numeric" value="75">
+<button onclick="recalc()">UPDATE DEPARTURE PLAN</button>
+<a class="btn secondary" href="https://www.google.com/maps/dir/?api=1&destination=Nashville+International+Airport&travelmode=driving">OPEN BNA IN MAPS</a>
+<div id="pickupPlan" class="status"></div>
+</section>
+
+<section class="card">
+<div class="row"><h2 style="margin:0">🧠 What Do I Do Next?</h2><label class="voice">🔊 Voice <input id="voice" type="checkbox" checked onchange="saveVoice()"></label></div>
+<div class="next"><span class="pill">NEXT</span><h3 id="nextTitle">Loading trip…</h3><div id="nextDetail"></div><button class="green" onclick="doneNext()">✓ DONE — NEXT</button></div>
+<button class="secondary" onclick="undo()">UNDO LAST</button>
+<div id="alertBox" class="status good">Companion is watching the next protected time.</div>
+</section>
+
+<section class="card">
+<h2>🗓️ Trip Timeline</h2>
+<p class="small">The Companion advances through the trip. Finished events stay finished; the next unfinished event becomes the mission.</p>
+<div id="timeline"></div>
+<button class="secondary" onclick="resetTrip()">RESET FIELD TEST PROGRESS</button>
+</section>
+
+<section class="card">
+<h2>🚆 Smart Transportation</h2>
+<p>The Companion can compare <b>time available</b> with a travel estimate. For live train departures, traffic and rideshare availability, use the live map/transit provider opened from the buttons below.</p>
+<label>Minutes until transit leaves</label><input id="transitLeaves" type="number" inputmode="numeric" placeholder="Example: 3">
+<label>Walking minutes to platform</label><input id="walkPlatform" type="number" inputmode="numeric" placeholder="Example: 85">
+<button onclick="transportCheck()">CHECK IF I CAN MAKE IT</button>
+<div id="transportAdvice" class="status">Enter the live numbers when needed.</div>
+<div class="row"><a class="btn" href="https://www.google.com/maps/dir/?api=1&travelmode=transit">🚆 OPEN LIVE TRANSIT</a><a class="btn secondary" href="https://m.uber.com/ul/">🚕 OPEN UBER</a></div>
+<a class="btn secondary" href="https://ride.lyft.com/">🚙 OPEN LYFT</a>
+</section>
+
+<section class="card">
+<h2>🏙️ Chicago Missions</h2>
+<div class="event"><b>Arrival</b><br>MDW → Orange Line → downtown → lodging/check-in.</div>
+<div class="event"><b>🍸 BIG DAISHOWA — River Roast</b><br>6:30 PM cocktails • 7:30 PM dinner • business casual.
+<div class="row"><a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=River+Roast+315+N+LaSalle+St+Chicago+IL&travelmode=transit">ROUTE BY TRANSIT</a><a class="btn secondary" href="https://m.uber.com/ul/?action=setPickup&dropoff[formatted_address]=River%20Roast%2C%20315%20N%20LaSalle%20St%2C%20Chicago%2C%20IL">UBER</a></div></div>
+<div class="event"><b>🏭 IMTS Mission</b><br>ZEISS → Hexagon → Verisurf → High QA → Mastercam → Mitutoyo → CGTech/VERICUT → PolyWorks → FARO/Creaform.</div>
+<div class="event"><b>🎰 Bally’s Chicago Casino</b>
+<div class="row"><a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=Ballys+Chicago+Casino+600+N+Wabash+Ave+Chicago+IL&travelmode=transit">ROUTE / TRANSIT</a><a class="btn secondary" href="https://m.uber.com/ul/?action=setPickup&dropoff[formatted_address]=Bally%27s%20Chicago%20Casino%2C%20600%20N%20Wabash%20Ave%2C%20Chicago%2C%20IL">UBER</a></div></div>
+</section>
+
+<section class="card">
+<h2>🅿️ Parked Car</h2>
+<label>Parking note</label><textarea id="parkingNote" placeholder="Garage, level, row, landmark…"></textarea>
+<label>Parking photo</label><input id="parkingPhoto" type="file" accept="image/*" capture="environment" onchange="previewParking(event)">
+<img id="parkingPreview" class="preview" hidden>
+<div class="row"><button onclick="saveParking()">SAVE / UPDATE PARKING</button><button class="secondary" onclick="findCar()">FIND MY CAR</button></div>
+<div id="parkingStatus" class="status">No parking position saved.</div>
+</section>
+
+<section class="card">
+<h2>💵 Money & Receipts</h2>
+<label>Base currency</label><select id="baseCurrency"><option>USD</option><option>CHF</option><option>EUR</option><option>GBP</option><option>CAD</option><option>JPY</option></select>
+<label>Starting per diem</label><input id="perDiem" type="number" inputmode="decimal" step="0.01" value="322.00">
+<div class="moneygrid"><div class="moneybox">Per Diem Remaining<b id="pdRemain">$ 322.00.-</b></div><div class="moneybox">Company Reimbursable<b id="coTotal">$ 0.00.-</b></div><div class="moneybox">Personal<b id="personalTotal">$ 0.00.-</b></div></div>
+<label>Expense amount</label><input id="expenseAmount" type="number" inputmode="decimal" step="0.01" placeholder="0.00">
+<label>Bucket</label><select id="expenseBucket"><option value="perdiem">Meal / Per Diem</option><option value="company">Company Reimbursable</option><option value="personal">Personal</option></select>
+<label>Merchant / note</label><input id="expenseNote" placeholder="Restaurant, Ventra, parking…">
+<label>Receipt photo</label><input id="receiptPhoto" type="file" accept="image/*" capture="environment">
+<button onclick="saveExpense()">SAVE EXPENSE</button>
+<div id="expenseList"></div>
+</section>
+
+<section class="card">
+<h2>✈️ Saturday — Reverse Trip Home</h2>
+<p>The return skeleton is already here. On Saturday the Companion should use your <b>actual location</b> as the starting point and protect the return flight.</p>
+<div class="event">Current location / lodging → MDW</div><div class="event">Southwest #2677 • MDW 2:25 PM → BNA 3:50 PM</div><div class="event">BNA → Find My Car</div><div class="event">Parked car → Home</div>
+<a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=Chicago+Midway+International+Airport&travelmode=transit">ROUTE TO MDW</a>
+</section>
+
+<section class="card">
+<h2>🔐 Private Travel Wallet</h2>
+<textarea id="wallet" placeholder="Private notes stored only in this browser. Do not put passwords or sensitive employer/customer information here."></textarea>
+<button onclick="saveWallet()">SAVE LOCALLY</button><div id="walletStatus" class="status">Local device storage only.</div>
+</section>
+</div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id), mem={};
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return mem[k]??null}},set(k,v){try{localStorage.setItem(k,String(v))}catch(e){mem[k]=String(v)}},del(k){try{localStorage.removeItem(k)}catch(e){delete mem[k]}}};
+const read=(k,f)=>{try{return JSON.parse(store.get(k)||"")??f}catch(e){return f}};
+const fmtTime=d=>new Intl.DateTimeFormat("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}).format(d);
+const money=n=>{let c=$("baseCurrency").value||"USD", sign={USD:"$",EUR:"€",GBP:"£",JPY:"¥",CHF:"CHF",CAD:"C$"}[c]||c;return `${sign} ${Number(n||0).toFixed(2)}.-`};
+let progress=read("v26progress",0), history=read("v26history",[]);
+let actualGPS=read("v26actualGPS",null), plannedGPS=read("v26plannedGPS",null), parking=read("v26parking",null);
+let expenses=read("v26expenses",[]);
+const events=[
+ {title:"Pickup: Schmiede Corp — Ben + John + Scott",detail:"One pickup location before BNA."},
+ {title:"BNA — Park the car + save GPS/photo",detail:"Keep parking and gasoline receipts."},
+ {title:"Southwest #0573 — BNA → MDW",detail:"Hard target: departure 12:00 PM."},
+ {title:"Chicago arrival → lodging",detail:"Use live transit from MDW; check-in target 4:00 PM."},
+ {title:"BIG DAISHOWA — River Roast",detail:"6:30 PM cocktails • 7:30 PM dinner • business casual."},
+ {title:"IMTS — Thursday mission",detail:"Use the exhibitor mission list and live routing."},
+ {title:"IMTS — Friday mission",detail:"Continue remaining priority exhibitors."},
+ {title:"Saturday: current location → MDW",detail:"Protect Southwest #2677 at 2:25 PM."},
+ {title:"BNA → Find My Car",detail:"Use saved parking GPS, note and photo."},
+ {title:"Drive home",detail:"Final mission. Trip complete."}
+];
+function speak(t){try{if(!$("voice").checked||!("speechSynthesis"in window))return; speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(t);u.rate=.98;speechSynthesis.speak(u)}catch(e){}}
+function saveVoice(){store.set("v26voice",$("voice").checked?"1":"0")}
+function recalc(){
+ const t=new Date($("targetTime").value), b=Number($("buffer").value||0), stop=Number($("pickupStop").value||0), drive=Number($("driveBNA").value||0);
+ const airportReady=new Date(t-b*60000), leaveSchmiede=new Date(airportReady-drive*60000), arriveSchmiede=new Date(leaveSchmiede-stop*60000);
+ $("targetStatus").innerHTML=`🎯 Airport-ready / protected: <b>${fmtTime(airportReady)}</b><br>Flight target: ${fmtTime(t)}`;
+ $("pickupPlan").innerHTML=`Arrive Schmiede about <b>${fmtTime(arriveSchmiede)}</b><br>Leave Schmiede about <b>${fmtTime(leaveSchmiede)}</b><br>Airport-ready target <b>${fmtTime(airportReady)}</b>`;
+ store.set("v26inputs",JSON.stringify({targetName:$("targetName").value,targetTime:$("targetTime").value,buffer:$("buffer").value,pickupStop:$("pickupStop").value,driveBNA:$("driveBNA").value,startName:$("startName").value,startTime:$("startTime").value}));
+ renderNext();
+}
+function checkGPS(){
+ if(!navigator.geolocation){$("gpsStatus").textContent="GPS is not available in this browser.";return}
+ $("gpsStatus").textContent="Checking current location…";
+ navigator.geolocation.getCurrentPosition(p=>{actualGPS={lat:p.coords.latitude,lng:p.coords.longitude,at:Date.now()};store.set("v26actualGPS",JSON.stringify(actualGPS));$("gpsStatus").innerHTML=`📍 Actual GPS checked ${new Date().toLocaleTimeString()}. This actual position will override the planned start when routing.`;},e=>{$("gpsStatus").textContent="Location was not available. You can continue with the planned start.";},{enableHighAccuracy:true,timeout:12000});
+}
+function saveStartGPS(){
+ if(!navigator.geolocation){$("gpsStatus").textContent="GPS unavailable.";return}
+ navigator.geolocation.getCurrentPosition(p=>{plannedGPS={lat:p.coords.latitude,lng:p.coords.longitude,at:Date.now(),name:$("startName").value};store.set("v26plannedGPS",JSON.stringify(plannedGPS));$("gpsStatus").textContent="📌 Planned-start GPS saved on this device.";},e=>{$("gpsStatus").textContent="Could not save planned-start GPS.";},{enableHighAccuracy:true,timeout:12000});
+}
+function renderNext(){
+ let e=events[Math.min(progress,events.length-1)];
+ $("nextTitle").textContent=progress>=events.length?"Trip complete 🏁":e.title;
+ $("nextDetail").textContent=progress>=events.length?"Welcome home.":e.detail;
+ $("timeline").innerHTML=events.map((x,i)=>`<div class="event ${i<progress?"done":""}"><b>${i<progress?"✓ ":""}${i+1}. ${x.title}</b><br><span class="small">${x.detail}</span></div>`).join("");
+}
+function doneNext(){
+ if(progress>=events.length)return;
+ history.push(progress); let completed=events[progress].title; progress++; store.set("v26progress",progress);store.set("v26history",JSON.stringify(history));renderNext();
+ let next=events[progress]?.title||"home";
+ if(completed.includes("Schmiede")) speak("Welcome aboard, Ben, John and Scott. Next stop: Nashville International Airport.");
+ else speak(`Completed. Next: ${next}.`);
+}
+function undo(){if(!history.length)return;progress=history.pop();store.set("v26progress",progress);store.set("v26history",JSON.stringify(history));renderNext()}
+function resetTrip(){if(confirm("Reset field-test progress only?")){progress=0;history=[];store.set("v26progress",0);store.set("v26history","[]");renderNext()}}
+function transportCheck(){
+ let dep=Number($("transitLeaves").value), walk=Number($("walkPlatform").value);
+ if(!isFinite(dep)||!isFinite(walk)||dep<=0||walk<0){$("transportAdvice").textContent="Enter the live departure and walking time.";return}
+ let msg;
+ if(walk+3>dep){msg=`Your train should leave in about ${dep} minutes. Your walking time to the platform is about ${walk} minutes. You will not make that connection on foot. Open Uber or Lyft, or choose a later transit option.`;$("transportAdvice").className="status danger"}
+ else {msg=`You have about ${dep} minutes. Walking time is about ${walk} minutes. You have enough time for this connection, with a small safety margin.`;$("transportAdvice").className="status good"}
+ $("transportAdvice").textContent=msg;speak(msg);
+}
+function previewParking(ev){let f=ev.target.files?.[0];if(!f)return;let im=$("parkingPreview");im.src=URL.createObjectURL(f);im.hidden=false}
+function saveParking(){
+ let note=$("parkingNote").value;
+ const finish=(gps)=>{parking={note,gps,at:Date.now()};store.set("v26parking",JSON.stringify(parking));$("parkingStatus").innerHTML=`🅿️ Saved ${new Date(parking.at).toLocaleString()}${gps?" • GPS saved":""}<br>${note||""}`};
+ if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>finish({lat:p.coords.latitude,lng:p.coords.longitude}),()=>finish(null),{enableHighAccuracy:true,timeout:8000});else finish(null);
+}
+function findCar(){
+ if(!parking?.gps){$("parkingStatus").textContent="No parking GPS saved yet.";return}
+ location.href=`https://www.google.com/maps/dir/?api=1&destination=${parking.gps.lat},${parking.gps.lng}&travelmode=walking`;
+}
+function saveExpense(){
+ let amt=Number($("expenseAmount").value);if(!(amt>0))return;
+ expenses.push({amt,bucket:$("expenseBucket").value,note:$("expenseNote").value,at:Date.now()});store.set("v26expenses",JSON.stringify(expenses));$("expenseAmount").value="";$("expenseNote").value="";renderMoney();
+}
+function renderMoney(){
+ let start=Number($("perDiem").value||322), pd=0,co=0,pe=0;
+ expenses.forEach(x=>{if(x.bucket==="perdiem")pd+=x.amt;else if(x.bucket==="company")co+=x.amt;else pe+=x.amt});
+ $("pdRemain").textContent=money(start-pd);$("coTotal").textContent=money(co);$("personalTotal").textContent=money(pe);
+ $("expenseList").innerHTML=expenses.slice().reverse().map(x=>`<div class="event"><b>${money(x.amt)}</b> • ${x.bucket==="perdiem"?"Per Diem":x.bucket==="company"?"Company Reimbursable":"Personal"}<br><span class="small">${x.note||""} • ${new Date(x.at).toLocaleString()}</span></div>`).join("");
+}
+function saveWallet(){store.set("v26wallet",$("wallet").value);$("walletStatus").textContent="🔐 Saved locally on this device."}
+function init(){
+ let x=read("v26inputs",null);if(x)Object.keys(x).forEach(k=>{if($(k))$(k).value=x[k]});
+ $("voice").checked=store.get("v26voice")!=="0";$("wallet").value=store.get("v26wallet")||"";$("baseCurrency").onchange=renderMoney;$("perDiem").oninput=renderMoney;
+ if(parking){$("parkingNote").value=parking.note||"";$("parkingStatus").innerHTML=`🅿️ Saved ${new Date(parking.at).toLocaleString()}${parking.gps?" • GPS saved":""}<br>${parking.note||""}`}
+ recalc();renderNext();renderMoney();
+}
+init();
+</script></body></html>
